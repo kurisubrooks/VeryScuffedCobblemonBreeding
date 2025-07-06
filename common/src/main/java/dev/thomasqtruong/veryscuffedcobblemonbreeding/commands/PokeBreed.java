@@ -418,7 +418,22 @@ public class PokeBreed {
       baby.setShiny(false);
       // Shinies enabled.
       if (CobblemonConfig.shinyRate > 0) {
-        intRNG = RNG.nextInt(CobblemonConfig.shinyRate);  // 0-shinyRate
+        /* Implement a psuedo-Masuda method, where shiny odds are increased when
+         * at least one Pokémon has a different OT from the breeding user */
+        String pokemon1OT = breederPokemon1.getOriginalTrainer();
+        String pokemon2OT = breederPokemon2.getOriginalTrainer();
+        String breederUUIDString = breederUUID.toString();
+
+        boolean masudaMethod = (pokemon1OT != null && !pokemon1OT.equals(breederUUIDString)) ||
+                (pokemon2OT != null && !pokemon2OT.equals(breederUUIDString));
+
+        int shinyRate = CobblemonConfig.shinyRate;
+        if (masudaMethod) {
+          // Masuda method odds are about 6x as of Gen VI
+          shinyRate = Math.max(1, shinyRate / 6);
+        }
+
+        intRNG = RNG.nextInt(shinyRate);  // 0-shinyRate
         // Hit shiny (1/shinyRate chance).
         if (intRNG == 0) {
           baby.setShiny(true);
