@@ -418,7 +418,7 @@ public class PokeBreed {
       baby.setShiny(false);
       // Shinies enabled.
       if (CobblemonConfig.shinyRate > 0) {
-        /* Implement a psuedo-Masuda method, where shiny odds are increased when
+        /* Implement a pseudo-Masuda method, where shiny odds are increased when
          * at least one Pokémon has a different OT from the breeding user */
         String pokemon1OT = breederPokemon1.getOriginalTrainer();
         String pokemon2OT = breederPokemon2.getOriginalTrainer();
