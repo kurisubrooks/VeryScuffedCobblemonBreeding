@@ -2,6 +2,7 @@ package dev.thomasqtruong.veryscuffedcobblemonbreeding.util
 
 import com.cobblemon.mod.common.api.pokemon.stats.Stats
 import com.cobblemon.mod.common.item.PokemonItem
+import com.cobblemon.mod.common.pokemon.Gender
 import com.cobblemon.mod.common.pokemon.Pokemon
 import com.cobblemon.mod.common.util.lang
 import net.minecraft.ChatFormatting
@@ -160,7 +161,19 @@ object PokemonUtility {
                 Component.literal("Form: ").withStyle(ChatFormatting.GOLD).append(pokemon.form.name)
             ))
             .setCustomName(
-                if (pokemon.shiny) pokemon.species.translatedName.copy().withStyle(ChatFormatting.GRAY).append(Component.literal(" ★").withStyle(ChatFormatting.GOLD)) else pokemon.species.translatedName.copy().withStyle(ChatFormatting.GRAY)
+                pokemon.species.translatedName.copy().withStyle(ChatFormatting.GRAY)
+                    .append(
+                        when (pokemon.gender) {
+                            Gender.MALE -> Component.literal(" ♂").withStyle(ChatFormatting.BLUE)
+                            Gender.FEMALE -> Component.literal(" ♀").withStyle(ChatFormatting.LIGHT_PURPLE)
+                            Gender.GENDERLESS -> Component.literal(" ")
+                        }
+                    )
+                    .append(
+                        if (pokemon.shiny) {
+                            Component.literal("★").withStyle(ChatFormatting.GOLD)
+                        } else Component.empty()
+                    ),
             )
             .build()
         return itemstack
