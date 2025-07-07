@@ -263,7 +263,8 @@ public class PokeBreed {
         party.add(baby);
 
         // Send success message and set cooldown.
-        Component toSend = Component.literal("Breed complete!").withStyle(ChatFormatting.GREEN);
+        Component toSend = Component.literal("Breed complete!").withStyle(ChatFormatting.GREEN)
+                .append(baby.getShiny() ? Component.literal(" ★").withStyle(ChatFormatting.GOLD) : Component.empty());
         breeder.sendSystemMessage(toSend);
         // Player has VIP status.
         if (isVIP) {
