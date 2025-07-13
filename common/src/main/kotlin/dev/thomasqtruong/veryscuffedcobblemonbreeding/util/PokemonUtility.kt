@@ -125,8 +125,6 @@ object PokemonUtility {
         val moveThree = if (pokemon.moveSet.getMoves().size >= 3) pokemon.moveSet[2]!!.displayName.string else "Empty"
         val moveFour = if (pokemon.moveSet.getMoves().size >= 4) pokemon.moveSet[3]!!.displayName.string else "Empty"
 
-
-
         val itemstack: ItemStack = ItemBuilder(PokemonItem.from(pokemon,1))
             .hideAdditional()
             .addLore(arrayOf<Component>(Component.literal(pokemon.caughtBall.item().defaultInstance.displayName.string).setStyle(Style.EMPTY.withItalic(true).withColor(ChatFormatting.DARK_GRAY)),
@@ -138,6 +136,9 @@ object PokemonUtility {
 
                 Component.literal("Nature: ").withStyle(ChatFormatting.YELLOW).append(lang(pokemon.nature.displayName.replace("cobblemon.", "")).withStyle(ChatFormatting.WHITE)),
                 Component.literal("Ability: ").withStyle(ChatFormatting.GOLD).append(lang(pokemon.ability.displayName.replace("cobblemon.", "")).withStyle(ChatFormatting.WHITE)),
+                Component.literal("OT: ").withStyle(ChatFormatting.RED).append(
+                    Component.literal(pokemon.originalTrainerName ?: "Unknown").withStyle(ChatFormatting.WHITE)
+                ),
                 Component.literal("IVs: ").withStyle(ChatFormatting.LIGHT_PURPLE),
                 Component.literal("  HP: ").withStyle(ChatFormatting.RED).append(Component.literal(pokemon.ivs.getOrDefault(Stats.HP).toString()).withStyle(ChatFormatting.WHITE))
                     .append(Component.literal("  Atk: ").withStyle(ChatFormatting.BLUE).append(Component.literal(pokemon.ivs.getOrDefault(Stats.ATTACK).toString()).withStyle(ChatFormatting.WHITE)))
