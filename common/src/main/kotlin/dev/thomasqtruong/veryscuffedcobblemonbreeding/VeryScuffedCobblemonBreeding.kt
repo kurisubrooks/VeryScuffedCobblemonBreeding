@@ -12,10 +12,10 @@ import org.apache.logging.log4j.Logger
 object VeryScuffedCobblemonBreeding {
   public lateinit var permissions: VeryScuffedCobblemonBreedingPermissions
   const val MODID = "veryscuffedcobblemonbreeding"
-  var LOGGER: Logger = LogManager.getLogger("[VeryScuffedCobblemonBreeding]")
+  var LOGGER: Logger = LogManager.getLogger("VeryScuffedCobblemonBreeding")
 
   fun initialize() {
-    getLogger().info("VeryScuffedCobblemonBreedingPermissions - Initialized")
+    getLogger().info("Permissions Initialized")
     VeryScuffedCobblemonBreedingConfig() // must load before permissions so perms use default permission level.
     this.permissions = VeryScuffedCobblemonBreedingPermissions()
 

@@ -12,7 +12,7 @@ public final class VeryScuffedCobblemonBreedingForge {
     final ForgeEventHandler forgeEventHandler = new ForgeEventHandler();
 
     public VeryScuffedCobblemonBreedingForge() {
-        VeryScuffedCobblemonBreeding.INSTANCE.getLogger().info("VeryScuffedCobblemonBreeding NeoForge Starting...");
+        VeryScuffedCobblemonBreeding.INSTANCE.getLogger().info("NeoForge Starting...");
         VeryScuffedCobblemonBreeding.INSTANCE.initialize();
         NeoForge.EVENT_BUS.register(VeryScuffedCobblemonBreedingForge.class);
         forgeEventHandler.register();

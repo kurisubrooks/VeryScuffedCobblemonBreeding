@@ -31,6 +31,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.network.chat.Component;
 import net.minecraft.ChatFormatting;
 import oshi.jna.platform.mac.SystemB;
+import org.apache.logging.log4j.Logger;
 
 import java.util.*;
 import java.util.concurrent.Executors;
@@ -42,6 +43,8 @@ import java.util.concurrent.TimeUnit;
  * Command handler for the breeding process.
  */
 public class PokeBreed {
+  private static final Logger LOGGER = VeryScuffedCobblemonBreeding.INSTANCE.getLogger();
+
   // Schedules when players are out of cooldown.
   public static ScheduledThreadPoolExecutor scheduler;
   // Keeps track of every breeding session.
@@ -197,7 +200,7 @@ public class PokeBreed {
     /**
      * Constructor: set default value and obtain user information.
      *
-     * @param breeder - the player that is breeding their Cobblemons.
+     * @param breeder - the player that is breeding their Cobblemon.
      */
     public BreedSession(ServerPlayer breeder) {
       this.breeder = breeder;
@@ -235,13 +238,14 @@ public class PokeBreed {
     public void doBreed() {
       // Breed cancelled, why are we still doing the breed?
       if (this.cancelled) {
-        System.out.println("Something funky is goin' on");
+        LOGGER.warn("Breed was cancelled, but doBreed() was still called.");
         cancel("Something funky is goin' on.");
         return;
       }
-      // Only provided 1 or 0 Pokemon to breed or pokemons don't exist.
+
+      // Only provided 1 or 0 Pokemon to breed or Pokemon doesn't exist.
       if (breederPokemon1 == null || breederPokemon2 == null) {
-        cancel("Not enough Cobblemons provided.");
+        cancel("You must provide 2 Cobblemon to breed.");
         return;
       }
 
@@ -253,7 +257,7 @@ public class PokeBreed {
       // Proceeding to breed.
       cancelled = true;
 
-      // Pokemons exist.
+      // Both Pokemon exist.
       if (breederPokemon1 != null && breederPokemon2 != null) {
         // Get the bred Pokemon.
         Pokemon baby = getPokemonBred();
@@ -266,6 +270,7 @@ public class PokeBreed {
         Component toSend = Component.literal("Breed complete!").withStyle(ChatFormatting.GREEN)
                 .append(baby.getShiny() ? Component.literal(" ★").withStyle(ChatFormatting.GOLD) : Component.empty());
         breeder.sendSystemMessage(toSend);
+
         // Player has VIP status.
         if (isVIP) {
           scheduler.schedule(() -> {
@@ -285,7 +290,7 @@ public class PokeBreed {
         }
         timeBred = System.currentTimeMillis();
       } else {
-        cancel("One of the Cobblemons does not exist!");
+        cancel("One of those Cobblemon does not exist!");
       }
     }
 
@@ -310,14 +315,14 @@ public class PokeBreed {
         return false;
       }
       // Ditto breeding is disabled for the server.
-      if (VeryScuffedCobblemonBreedingConfig.DITTO_BREEDING == 0
+      if (!VeryScuffedCobblemonBreedingConfig.DITTO_BREEDING
               && (pokemon1Species.equals("ditto") || pokemon2Species.equals("ditto"))) {
-        cancel("Cannot breed with ditto: server disabled.");
+        cancel("Cannot breed with Ditto: server disabled.");
         return false;
       }
       // Both dittos.
       if (pokemon1Species.equals("ditto") && pokemon2Species.equals("ditto")) {
-        cancel("Cannot breed dittos.");
+        cancel("Cannot breed two Ditto together.");
         return false;
       }
       // Any are part of the Undiscovered egg group.
@@ -341,20 +346,20 @@ public class PokeBreed {
         if (pokemon1Gender.equals("GENDERLESS") && pokemon2Gender.equals("GENDERLESS")
                 && !pokemon1Species.equals(pokemon2Species)) {
           // Both are genderless and not the same species.
-          cancel("Cannot breed two differing genderless species (unless theres a ditto).");
+          cancel("Cannot breed two different genderless species (unless there's a Ditto).");
           return false;
         } else if (pokemon1Gender.equals("GENDERLESS") || pokemon2Gender.equals("GENDERLESS")) {
           // One is genderless.
-          cancel("Cannot breed a genderless non-ditto species with a regular Cobblemon.");
+          cancel("Cannot breed a genderless non-Ditto species with a regular Cobblemon.");
           return false;
         } else if (matchingEggGroupCount == 0) {
           // Not the same egg group.
-          cancel("Cannot breed two Cobblemons from different egg groups.");
+          cancel("Cannot breed two Cobblemon of different egg groups.");
           return false;
         }
       }
 
-      // Both Pokemons look breedable, check if one is ditto or self.
+      // Both Pokemon look breedable, check if one is ditto or self.
       if ((pokemon1Species.equals("ditto") || pokemon2Species.equals("ditto"))
               || pokemon1Species.equals(pokemon2Species)) {
         dittoOrSelfBreeding = true;
@@ -364,7 +369,7 @@ public class PokeBreed {
 
 
     /**
-     * Breeds the Cobblemons and gets the baby.
+     * Breeds both Cobblemon and gets the baby.
      * The baby will have default values and inherit some things
      * from the parent.
      *
@@ -372,6 +377,9 @@ public class PokeBreed {
      */
     public Pokemon getPokemonBred() {
       Pokemon baby;
+
+      LOGGER.debug("{} started a breeding session between {} and {}",
+              breeder.getGameProfile().getName(), breederPokemon1.getSpecies().toString(), breederPokemon2.getSpecies().toString());
 
       // Ditto/self breeding = itself.
       if (dittoOrSelfBreeding) {
@@ -399,7 +407,7 @@ public class PokeBreed {
         baby.setSpecies(preEvolution);
       }
 
-      // SPECIAL CASE: manaphy -> phione.
+      // SPECIAL CASE: Manaphy -> Phione.
       if (String.valueOf(baby.getSpecies()).equals("manaphy")) {
         baby.setSpecies(Objects.requireNonNull(PokemonSpecies.INSTANCE.getByName("phione")));
       }
@@ -417,26 +425,61 @@ public class PokeBreed {
 
       // Reset to default and RNG for shiny.
       baby.setShiny(false);
-      // Shinies enabled.
-      if (CobblemonConfig.shinyRate > 0) {
-        /* Implement a pseudo-Masuda method, where shiny odds are increased when
-         * at least one Pokémon has a different OT from the breeding user */
-        String pokemon1OT = breederPokemon1.getOriginalTrainer();
-        String pokemon2OT = breederPokemon2.getOriginalTrainer();
-        String breederUUIDString = breederUUID.toString();
+      int shinyRate = !VeryScuffedCobblemonBreedingConfig.USE_CUSTOM_SHINY_RATE ?
+              CobblemonConfig.shinyRate : VeryScuffedCobblemonBreedingConfig.CUSTOM_SHINY_RATE;
 
-        boolean masudaMethod = (pokemon1OT != null && !pokemon1OT.equals(breederUUIDString)) ||
-                (pokemon2OT != null && !pokemon2OT.equals(breederUUIDString));
+      // Shiny breeding enabled.
+      if (shinyRate > 0) {
+        // The calculation for shiny rate odds is summarised as follows:
+        // If USE_CUSTOM_SHINY_RATE is disabled, the starting shiny rate uses Cobblemon's default shiny rate (default: 8192).
+        // If MASUDA_BREEDING is enabled, divide by MASUDA_BREEDING_MODIFIER (8192 / 6 = 1365)
+        // If CRYSTAL_BREEDING is enabled, divide by CRYSTAL_BREEDING_MODIFIER (1365 / 2 = 682.5)
+        // If CRYSTAL_BREEDING_DOUBLE_PARENT is enabled, divide by CRYSTAL_BREEDING_MODIFIER again (682.5 / 2 = 341.25)
+        // The final shiny rate is then rounded to the nearest integer, making the full odds, assuming the default values are unchanged, approximately 1 in 341.
 
-        int shinyRate = CobblemonConfig.shinyRate;
-        if (masudaMethod) {
-          // Masuda method odds are about 6x as of Gen VI
-          shinyRate = Math.max(1, shinyRate / 6);
+        LOGGER.debug("Initial shiny rate: 1 in {}", shinyRate);
+
+        // Masuda method breeding
+        if (VeryScuffedCobblemonBreedingConfig.MASUDA_BREEDING) {
+          LOGGER.debug("Masuda method breeding is enabled");
+
+          // Check if either Pokémon has a different OT than the breeder/player.
+          String pokemon1OT = breederPokemon1.getOriginalTrainer();
+          String pokemon2OT = breederPokemon2.getOriginalTrainer();
+          String breederUUIDString = breederUUID.toString();
+
+          boolean masudaMethod = (pokemon1OT != null && !pokemon1OT.equals(breederUUIDString)) ||
+                  (pokemon2OT != null && !pokemon2OT.equals(breederUUIDString));
+
+          if (masudaMethod) {
+            // At least one parent has a different OT, increase odds.
+            shinyRate = Math.max(1, shinyRate / VeryScuffedCobblemonBreedingConfig.MASUDA_BREEDING_MODIFIER);
+            LOGGER.debug("Masuda method triggered, new odds: 1 in {}", shinyRate);
+          }
         }
 
-        intRNG = RNG.nextInt(shinyRate);  // 0-shinyRate
+        // Crystal method breeding
+        if (VeryScuffedCobblemonBreedingConfig.CRYSTAL_BREEDING) {
+          LOGGER.debug("Crystal method breeding is enabled");
+
+          if (breederPokemon1.getShiny() || breederPokemon2.getShiny()) {
+            // Either parent is shiny, increase odds.
+            shinyRate = Math.max(1, shinyRate / VeryScuffedCobblemonBreedingConfig.CRYSTAL_BREEDING_MODIFIER);
+            LOGGER.debug("Crystal method triggered, new odds: 1 in {}", shinyRate);
+
+            // Check if both parents are shiny, increase odds further.
+            if (VeryScuffedCobblemonBreedingConfig.CRYSTAL_BREEDING_DOUBLE_PARENT &&
+                    (breederPokemon1.getShiny() && breederPokemon2.getShiny())) {
+              shinyRate = Math.max(1, shinyRate / VeryScuffedCobblemonBreedingConfig.CRYSTAL_BREEDING_MODIFIER);
+              LOGGER.debug("Double Crystal method triggered, new odds: 1 in {}", shinyRate);
+            }
+          }
+        }
+
+        intRNG = RNG.nextInt(shinyRate); // 0-shinyRate
         // Hit shiny (1/shinyRate chance).
         if (intRNG == 0) {
+          LOGGER.debug("{} rolled a shiny!", breeder.getGameProfile().getName());
           baby.setShiny(true);
         }
       }
@@ -453,6 +496,8 @@ public class PokeBreed {
       inheritIVs(baby);
       baby.setNature(getRandomNature());
       baby.setOriginalTrainer(breederUUID);
+
+      LOGGER.debug("Breeding session complete, new {} dispensed.", baby.getSpecies().toString());
 
       return baby;
     }
@@ -488,7 +533,7 @@ public class PokeBreed {
      */
     public boolean hasHiddenAbility(Pokemon toCheck) {
       // Hidden ability is disabled.
-      if (VeryScuffedCobblemonBreedingConfig.HIDDEN_ABILITY == 0) {
+      if (!VeryScuffedCobblemonBreedingConfig.HIDDEN_ABILITY) {
         return false;
       }
 
@@ -617,7 +662,7 @@ public class PokeBreed {
         amountOfIVsToGet = 5;
       }
 
-      // Count how many Cobblemons have a power item.
+      // Count how many breeding Cobblemon have a power item.
       int powerItemsCount = 0;
       if (powerItemsMap.containsKey(parent1Item) || oldPowerItemsMap.containsKey(oldParent1Item)) {
         ++powerItemsCount;

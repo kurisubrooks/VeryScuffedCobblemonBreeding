@@ -1,5 +1,7 @@
 package dev.thomasqtruong.veryscuffedcobblemonbreeding.config;
 
+import dev.thomasqtruong.veryscuffedcobblemonbreeding.VeryScuffedCobblemonBreeding;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
@@ -23,7 +25,7 @@ public class CobblemonConfig {
   public void init() {
     File configFolder = new File(System.getProperty("user.dir") + "/config/cobblemon");
     File configFile = new File(configFolder, "main.json");
-    System.out.println("cobblemon config -> " + configFolder.getAbsolutePath());
+    VeryScuffedCobblemonBreeding.INSTANCE.getLogger().info("Cobblemon Config -> {}", configFolder.getAbsolutePath());
 
     try {
       JsonObject obj = GSON.fromJson(new FileReader(configFile), JsonObject.class);

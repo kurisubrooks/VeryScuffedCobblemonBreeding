@@ -11,7 +11,7 @@ import net.minecraft.server.level.ServerPlayer;
 public class ForgeEventHandler {
     public void register() {
         NeoForge.EVENT_BUS.register(this);
-        VeryScuffedCobblemonBreeding.INSTANCE.getLogger().info("Registered VeryScuffedCobblemonBreeding Forge Event Handler");
+        VeryScuffedCobblemonBreeding.INSTANCE.getLogger().info("Registered Forge Event Handler");
     }
 
     @SubscribeEvent
